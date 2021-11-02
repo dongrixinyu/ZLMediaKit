@@ -75,13 +75,24 @@ void FFmpegSource::play(const string &ffmpeg_cmd_key, const string &src_url,cons
     _media_info.parse(dst_url);
 
     auto ffmpeg_cmd = ffmpeg_cmd_default;
+    std::cout << "ffmpegSource.cpp: if is empty: " << !ffmpeg_cmd_key.empty() << std::endl;
+    /**
     if (!ffmpeg_cmd_key.empty()) {
+        // ffmpeg_cmd_key 非空
         auto cmd_it = mINI::Instance().find(ffmpeg_cmd_key);
         if (cmd_it != mINI::Instance().end()) {
+            // 找到了 key 值
             ffmpeg_cmd = cmd_it->second;
         } else{
             WarnL << "配置文件中,ffmpeg命令模板(" << ffmpeg_cmd_key << ")不存在,已采用默认模板(" << ffmpeg_cmd_default << ")";
         }
+    }
+    */
+    if (!ffmpeg_cmd_key.empty()) {
+        // ffmpeg_cmd_key 非空
+        ffmpeg_cmd = ffmpeg_cmd_key;
+    } else{
+        WarnL << "配置文件中,ffmpeg命令模板(" << ffmpeg_cmd_key << ")不存在,已采用默认模板(" << ffmpeg_cmd_default << ")";
     }
 
     char cmd[1024] = {0};
@@ -321,4 +332,3 @@ void FFmpegSnap::makeSnap(const string &play_url, const string &save_path, float
         cb(process->exit_code() == 0);
     });
 }
-

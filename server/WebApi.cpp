@@ -381,9 +381,9 @@ Value getStatisticJson() {
 }
 
 /**
- * 安装api接口
- * 所有api都支持GET和POST两种方式
- * POST方式参数支持application/json和application/x-www-form-urlencoded方式
+ * 安装 api 接口
+ * 所有 api 都支持 GET 和 POST 两种方式
+ * POST 方式参数支持 application/json 和 application/x-www-form-urlencoded 方式
  */
 void installWebApi() {
     addHttpListener();
@@ -830,9 +830,10 @@ void installWebApi() {
                                      bool enable_mp4,
                                      const function<void(const SockException &ex, const string &key)> &cb) {
         auto key = MD5(dst_url).hexdigest();
+        // 互斥锁，
         lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
         if (s_ffmpegMap.find(key) != s_ffmpegMap.end()) {
-            //已经在拉流了
+            // 已经在拉流了，所以直接退出
             cb(SockException(Err_success), key);
             return;
         }
@@ -845,6 +846,7 @@ void installWebApi() {
             s_ffmpegMap.erase(key);
         });
         ffmpeg->setupRecordFlag(enable_hls, enable_mp4);
+        std::cout << "WebApi.cpp: ffmpeg cmd: " << ffmpeg_cmd_key << std::endl;
         ffmpeg->play(ffmpeg_cmd_key, src_url, dst_url, timeout_ms, [cb, key](const SockException &ex) {
             if (ex) {
                 lock_guard<decltype(s_ffmpegMapMtx)> lck(s_ffmpegMapMtx);
@@ -1037,7 +1039,7 @@ void installWebApi() {
         val["code"] = result ? API::Success : API::OtherFailed;
         val["msg"] = result ? "success" :  "start record failed";
     });
-    
+
     //设置录像流播放速度
     api_regist("/index/api/setRecordSpeed", [](API_ARGS_MAP) {
         CHECK_SECRET();
@@ -1280,10 +1282,24 @@ void installWebApi() {
     ////////////以下是注册的Hook API////////////
     api_regist("/index/hook/on_publish",[](API_ARGS_JSON){
         //开始推流事件
-        //转换hls
+        //转换成 rtsp 或 rtmp
+        //转换 hls
         val["enableHls"] = true;
-        //不录制mp4
+        //不录制 mp4
         val["enableMP4"] = false;
+
+        val["token"] = allArgs["params"].data();
+        string temp = allArgs["params"].data();
+        // std::cout << "value type: " << typeid(val["token"]).name() << std::endl;
+        string default_token = "zhrmghgws";
+
+        string::size_type idx;
+        idx = temp.find(default_token, 0);
+        if ( idx == string::npos )
+            val["code"] = -1;
+        else
+            val["code"] = 0;
+
     });
 
     api_regist("/index/hook/on_play",[](API_ARGS_JSON){

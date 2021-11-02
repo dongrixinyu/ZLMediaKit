@@ -1,4 +1,4 @@
-FROM ubuntu:18.04 AS build
+FROM jrottenberg/ffmpeg:4.4-nvidia1804 AS build
 ARG MODEL
 #shell,rtmp,rtsp,rtsps,http,https,rtp
 EXPOSE 9000/tcp
@@ -12,28 +12,32 @@ EXPOSE 10000/tcp
 EXPOSE 8000/udp
 
 RUN apt-get update && \
-         DEBIAN_FRONTEND="noninteractive" \
-         apt-get install -y --no-install-recommends \
-         build-essential \
-         cmake \
-         git \
-         curl \
-         vim \
-         wget \
-         ca-certificates \
-         tzdata \
-         libssl-dev \
-         libmysqlclient-dev \
-         libx264-dev \
-         libfaac-dev \
-         gcc \
-         g++ \
-         gdb \
-         libmp4v2-dev && \
-         apt-get autoremove -y && \
-         apt-get clean -y && \
-         wget https://github.com/cisco/libsrtp/archive/v2.2.0.tar.gz -O libsrtp-2.2.0.tar.gz && tar xfv libsrtp-2.2.0.tar.gz && \
-         cd libsrtp-2.2.0 && ./configure --enable-openssl && make && make install && \
+    DEBIAN_FRONTEND="noninteractive" \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    curl \
+    vim \
+    wget \
+    ca-certificates \
+    tzdata \
+    libssl-dev \
+    libmysqlclient-dev \
+    libx264-dev \
+    # libx265-dev \
+    # libfdk-aac-dev \
+    # libmp3lame-dev \
+    # libsdl2-dev \
+    libfaac-dev \
+    gcc \
+    g++ \
+    gdb \
+    libmp4v2-dev && \
+    apt-get autoremove -y && \
+    apt-get clean -y && \
+    wget https://github.com/cisco/libsrtp/archive/v2.2.0.tar.gz -O libsrtp-2.2.0.tar.gz && tar xfv libsrtp-2.2.0.tar.gz && \
+    cd libsrtp-2.2.0 && ./configure --enable-openssl && make && make install && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /opt/media
@@ -46,33 +50,33 @@ WORKDIR /opt/media/ZLMediaKit/build
 RUN cmake -DCMAKE_BUILD_TYPE=${MODEL} -DENABLE_WEBRTC=true -DENABLE_TESTS=false -DENABLE_API=false .. && \
     make -j8
 
-FROM ubuntu:18.04
+FROM jrottenberg/ffmpeg:4.4-nvidia1804
 ARG MODEL
 
 RUN apt-get update && \
-         DEBIAN_FRONTEND="noninteractive" \
-         apt-get install -y --no-install-recommends \
-         vim \
-         wget \
-         ca-certificates \
-         tzdata \
-         curl \
-         libssl-dev \
-         libx264-dev \
-         libfaac-dev \
-         ffmpeg \
-         gcc \
-         g++ \
-         gdb \
-         libmp4v2-dev && \
-         apt-get autoremove -y && \
-         apt-get clean -y && \
+    DEBIAN_FRONTEND="noninteractive" \
+    apt-get install -y --no-install-recommends \
+    vim \
+    wget \
+    ca-certificates \
+    tzdata \
+    curl \
+    libssl-dev \
+    libx264-dev \
+    libfaac-dev \
+    ffmpeg \
+    gcc \
+    g++ \
+    gdb \
+    libmp4v2-dev && \
+    apt-get autoremove -y && \
+    apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*
 
 ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
-        && echo $TZ > /etc/timezone && \
-        mkdir -p /opt/media/bin/www
+    && echo $TZ > /etc/timezone && \
+    mkdir -p /opt/media/bin/www
 
 WORKDIR /opt/media/bin/
 COPY --from=build /opt/media/ZLMediaKit/release/linux/${MODEL}/MediaServer /opt/media/ZLMediaKit/tests/default.pem /opt/media/bin/
